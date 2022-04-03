@@ -18,7 +18,7 @@ bool validateChoice(std::string question){
 
 std::string getProjectName(){
     std::string pName;
-    std::cout << "Enter the name of your new project: ";
+    std::cout << "Enter the name of your new package: ";
     std::getline(std::cin, pName);
     return pName;
 }
@@ -56,7 +56,7 @@ void createProject(std::string lang, std::string name, std::string extension){
     std::map<std::string, std::string> bash{
         {"c", "gcc "+name+".c -o "+name+"\n./"+name},
         {"cpp", "g++ -std=c++2a "+name+".cpp -o "+name+"\n./"+name},
-        {"java", "javac *.java\n#javac */*.java\n#jar -cfe "+name+".jar "+name+" *.class */*.class\njava "+name},
+        {"java", "javac "+name+".java\n#jar -cfe "+name+".jar "+name+" *.class */*.class\njava "+name},
         {"javascript", "deno run "+name+".js"},
         {"typescript", "deno run "+name+".ts"},
         {"python", "python3 "+name+".py"},
@@ -65,7 +65,7 @@ void createProject(std::string lang, std::string name, std::string extension){
         {"sql", ""},
         {"dart", "dart compile exe "+name+".dart -o "+name+"\n./"+name}
     };
-    std::cout << "Creating project" << std::endl;
+    std::cout << "Creating package" << std::endl;
     std::cout << "Creating directory \""+name+"\"" << std::endl;
     if(std::filesystem::create_directories(name+"/")){
         std::cout << "Directory created succesfully" << std::endl;
@@ -73,13 +73,18 @@ void createProject(std::string lang, std::string name, std::string extension){
         project << temp[lang];
         project.close();
         std::ofstream readme(name+"/README.md");
-        readme << "Project: " << name << std::endl;
+        readme << "Package: " << name << std::endl;
         readme << "Created with Kenneth's Project Manager" << std::endl;
         readme.close();
         std::ofstream bash_script(name+"/compile.sh");
         bash_script << "echo \"Compiling and Running\"\n";
         bash_script << bash[lang] << std::endl;
         bash_script.close();
+        if(!std::filesystem::exists(".wiz_settings")){
+            std::ofstream settings(name+"/.wiz_settings");
+            settings << extension;
+            settings.close();
+        }
         if(validateChoice("Do you want to open the project in VS Code? Y/n: ")){
             std::string code = "code " + name+"/";
             system(code.c_str());
@@ -87,6 +92,30 @@ void createProject(std::string lang, std::string name, std::string extension){
         return;
     }
     std::cout << "Directory already exists" << std::endl;
+}
+
+void createComponent(std::string component){
+    std::string ext {""};
+    std::ifstream extension(".wiz_settings");
+    getline(extension, ext);
+    if(std::filesystem::exists(component+"."+ext) == 0){
+        std::ofstream componentFile(component+"."+ext);
+        std::cout << "\""+component+"\" created succesfully.\n";
+    }
+    else{
+        std::cout << "File \""+component+"."+ext+"\" already exists.\n";
+    }
+}
+
+void help(){
+    std::cout << "Usage: wizard [option]" << std::endl;
+    std::cout << "Available commands: " << std::endl;
+    std::cout << "\tsummon\tCreate a new package for a project" << std::endl;
+    std::cout << "\tspell\tCreate new component file" << std::endl;
+    std::cout << "\tomen\tDisplay list of commands and options" << std::endl;
+    std::cout << "\tcurse\tLists supported programing languages" << std::endl;
+    //std::cout << "\tsettings\n";
+    //std::cout << "\ttree\tProject tree\n";
 }
 
 int main(int argc, char * argv[]){
@@ -100,79 +129,120 @@ int main(int argc, char * argv[]){
     {
     case 1:
         {
-            std::cout << "Welcome to the Kenneth PM" << std::endl;
-            project_name.assign(getProjectName());
-            project_lang.assign(getProjectLang(langs));
-            std::cout << std::endl << "Project name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
-            if(validateChoice("Create project? Y/n: ")){
-                createProject(project_lang, project_name, langs[project_lang]);
-            }
-            else{
-                std::cout << "Project is cancelled" << std::endl;
-            }
+            help();
         }
         break;
     case 2:
         {
-           std::string argOne = argv[1];
-           if(argOne.compare("--help") == 0 || argOne.compare("-h") == 0){
-               std::cout << "Available commands: " << std::endl;
-               std::cout << "\t--help or -h\tDisplay list of commands and options" << std::endl;
-               std::cout << "\t--langs\tLists supported programing languages" << std::endl;
-           }
-           else if(argOne.compare("--langs") == 0 || argOne.compare("-l") == 0){
-               std::cout << "Supported languages: " << std::endl;
-               for(auto lang: langs){
-                   std::cout << "\t" << lang.first << std::endl;
-               }
-           }
-           /*
-           else if(langs.contains(argOne)){
-                project_lang.assign(argOne);
+            std::string command = argv[1];
+            if(command.compare("summon") == 0){
+                std::cout << "Welcome to the Kenneth PM" << std::endl;
                 project_name.assign(getProjectName());
-                std::cout << std::endl << "Project name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
-                if(validateChoice("Create project? Y/n: ")){
+                project_lang.assign(getProjectLang(langs));
+                std::cout << std::endl << "Package name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
+                if(validateChoice("Create package? Y/n: ")){
                     createProject(project_lang, project_name, langs[project_lang]);
                 }
                 else{
-                    std::cout << "Project is cancelled" << std::endl;
+                    std::cout << "Project Wizard is cancelled" << std::endl;
                 }
-           }
-           */
-           else{
-               project_name.assign(argOne);
-               project_lang.assign(getProjectLang(langs));
-               std::cout << std::endl << "Project name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
-                if(validateChoice("Create project? Y/n: ")){
-                    createProject(project_lang, project_name, langs[project_lang]);
+            }
+            else if(command.compare("omen") == 0){
+                help();
+            }
+            else if (command.compare("curse") == 0){
+                std::cout << "Supported languages: \n";
+                for(auto lang:langs){
+                    std::cout << "\t* " << lang.first << std::endl;
+                }
+            }
+            else if(command.compare("spell") == 0){
+                std::cout << "Create component\n";
+                if(std::filesystem::exists(".wiz_settings")){
+                    std::string component_name;
+                    std::cout << "Component name: ";
+                    getline(std::cin, component_name);
+                    createComponent(component_name);
                 }
                 else{
-                    std::cout << "Project is cancelled" << std::endl;
+                    std::cout << "You are not in a Wizard project directory\n";
                 }
-           }
+            }
+            else{
+                std::cout << "wizard: unrecognized option '" << command << "'\n";
+                std::cout << "Try 'wizard omen' for more information and the list of available commands\n";
+            }
         }
         break;
     case 3: 
         {
-            if(langs.contains(argv[2])){
-                project_name.assign(argv[1]);
-                project_lang.assign(argv[2]);
-                std::cout << std::endl << "Project name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
-                if(validateChoice("Create project? Y/n: ")){
+            std::string command = argv[1], argument = argv[2];
+            if(command.compare("summon") == 0){
+                if(argument.compare("omen") == 0){
+                    std::cout << "wizard: option 'summon'\n";
+                    std::cout << "Usage: wizard summon [name] [programming language]\n";
+                }
+                else {
+                    project_name.assign(argument);
+                    project_lang.assign(getProjectLang(langs));
+                    std::cout << std::endl << "Package name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
+                    if(validateChoice("Create package? Y/n: ")){
+                        createProject(project_lang, project_name, langs[project_lang]);
+                    }
+                    else{
+                        std::cout << "Project Wizard is cancelled" << std::endl;
+                    }
+                }
+            }
+            else if(command.compare("spell") == 0){
+                if(argument.compare("omen") == 0){
+                    std::cout << "wizard: option 'spell'\n";
+                    std::cout << "Usage: wizard spell [name]\n";
+                }
+                else{
+                    std::cout << "Create component\n";
+                    if(std::filesystem::exists(".wiz_settings")){
+                        createComponent(argument);
+                    }
+                    else{
+                        std::cout << "You are not in a Wizard project directory\n";
+                    }
+                }
+            }
+            else if(command.compare("omen") == 0 || command.compare("curse") == 0){
+                std::cout << "wizard: too many arguments for '"+command+"' option. \n";
+            }
+            else{
+                std::cout << "wizard: unrecognized option '" << command << "'\n";
+                std::cout << "Try 'wizard omen' for more information and the list of available commands\n";
+            }
+        }
+        break;
+    case 4:
+        {
+            std::string command = argv[1], name = argv[2], p_lang = argv[3];
+            if(command.compare("summon")==0){
+                project_name.assign(name);
+                project_lang.assign(p_lang);
+                std::cout << std::endl << "Package name: " << project_name << std::endl << "Language: " << project_lang << std::endl;
+                if(validateChoice("Create package? Y/n: ")){
                     createProject(project_lang, project_name, langs[project_lang]);
                 }
                 else{
-                    std::cout << "Project is cancelled" << std::endl;
+                    std::cout << "Package is cancelled" << std::endl;
                 }
             }
+            else if(command.compare("spell")==0 || command.compare("omen")==0 || command.compare("curse")==0){
+                std::cout << "wizard: Too many arguments for '"+command+"' option. \n";
+            }
             else{
-                std::cout << argv[2] << " is not a valid language"<< std::endl;
-                std::cout << "Try a different language, or the subcommand \"--helps\" for the available list of supported programming languages" << std::endl;
+                std::cout << "wizard: unrecognized option '" << command << "'\n";
+                std::cout << "Try 'wizard omen' for more information and the list of available commands\n";
             }
         }
         break;
     default:
-        std::cout << "Too many arguments, try \"--help\" for more info" << std::endl;
+        std::cout << "Too many arguments, try \"omen\" for more info" << std::endl;
         break;
     }
     return 0;
